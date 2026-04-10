@@ -1,0 +1,16 @@
+{
+    "name": "openclaw/php-compatibility-checker",
+    "description": "WordPress plugin for PHP compatibility checking",
+    "type": "wordpress-plugin",
+    "require": {
+        "squizlabs/php_codesniffer": "^3.7",
+        "phpcompatibility/php-compatibility": "^9.3",
+        "phpcompatibility/phpcompatibility-wp": "^2.1"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "platform": {
+            "php": "7.2"
+        }
+    }
+}

@@ -1,0 +1,394 @@
+/**
+ * PHP Compatibility Checker - Admin Styles
+ * @package PHPCompatibilityChecker
+ */
+
+/* Layout */
+.phpcc-wrap {
+	max-width: 1400px;
+}
+
+/* Stats Grid */
+.phpcc-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 20px;
+	margin: 20px 0;
+}
+
+.phpcc-stat-card {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	padding: 20px;
+	text-align: center;
+	transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.phpcc-stat-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.phpcc-stat-card .dashicons {
+	font-size: 32px;
+	width: 32px;
+	height: 32px;
+	color: #1d2327;
+}
+
+.phpcc-stat-value {
+	font-size: 28px;
+	font-weight: 600;
+	margin: 10px 0;
+	color: #1d2327;
+}
+
+.phpcc-stat-label {
+	color: #646970;
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+/* Status Variants */
+.phpcc-status-good .dashicons,
+.phpcc-status-good .phpcc-stat-value {
+	color: #00a32a;
+}
+
+.phpcc-status-warning .dashicons,
+.phpcc-status-warning .phpcc-stat-value {
+	color: #dba617;
+}
+
+.phpcc-status-error .dashicons,
+.phpcc-status-error .phpcc-stat-value {
+	color: #d63638;
+}
+
+/* Controls */
+.phpcc-controls {
+	margin: 20px 0;
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.phpcc-filter {
+	margin-left: auto;
+}
+
+/* Progress Bar */
+.phpcc-progress {
+	background: #f0f0f1;
+	border-radius: 4px;
+	padding: 15px;
+	margin: 20px 0;
+}
+
+.phpcc-progress-bar {
+	background: #c3c4c7;
+	border-radius: 2px;
+	height: 8px;
+	overflow: hidden;
+	margin-bottom: 8px;
+}
+
+.phpcc-progress-fill {
+	background: #2271b1;
+	height: 100%;
+	transition: width 0.3s ease;
+}
+
+.phpcc-progress-text {
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.phpcc-progress-status {
+	color: #646970;
+	font-size: 12px;
+	margin-left: 10px;
+}
+
+/* Table */
+.phpcc-table {
+	margin-top: 20px;
+	border-collapse: separate;
+	border-spacing: 0;
+}
+
+.phpcc-table thead th {
+	font-weight: 600;
+	background: #f6f7f7;
+}
+
+.phpcc-table tr.phpcc-has-errors {
+	background-color: #fcf0f1 !important;
+}
+
+.phpcc-table tr.phpcc-has-warnings {
+	background-color: #fcf9e8 !important;
+}
+
+.phpcc-table tr.phpcc-clean {
+	background-color: #edfaef !important;
+}
+
+.phpcc-table tr:hover {
+	background-color: #f0f6fc !important;
+}
+
+.phpcc-table td {
+	vertical-align: middle;
+}
+
+/* Badges */
+.phpcc-badge {
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: 12px;
+	font-size: 11px;
+	font-weight: 600;
+	margin: 2px;
+	white-space: nowrap;
+}
+
+.phpcc-badge.phpcc-error {
+	background: #d63638;
+	color: #fff;
+}
+
+.phpcc-badge.phpcc-warning {
+	background: #dba617;
+	color: #1d2327;
+}
+
+.phpcc-badge.phpcc-success {
+	background: #00a32a;
+	color: #fff;
+}
+
+/* Status Badges */
+.phpcc-status-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 500;
+	text-transform: uppercase;
+}
+
+.phpcc-status-active {
+	background: #edfaef;
+	color: #00a32a;
+}
+
+.phpcc-status-inactive {
+	background: #f0f0f1;
+	color: #646970;
+}
+
+/* Buttons */
+.phpcc-view-issues {
+	font-size: 12px !important;
+	padding: 2px 8px !important;
+	height: auto !important;
+	line-height: 1.5 !important;
+}
+
+.phpcc-no-issues {
+	color: #646970;
+	font-style: italic;
+}
+
+/* Modal */
+.phpcc-modal {
+	display: none;
+	position: fixed;
+	z-index: 100000;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	overflow: auto;
+	background-color: rgba(0, 0, 0, 0.5);
+}
+
+.phpcc-modal-content {
+	background-color: #fff;
+	margin: 5% auto;
+	padding: 20px;
+	border-radius: 4px;
+	max-width: 800px;
+	max-height: 80vh;
+	overflow-y: auto;
+	position: relative;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.phpcc-modal-close {
+	color: #646970;
+	float: right;
+	font-size: 28px;
+	font-weight: bold;
+	cursor: pointer;
+	line-height: 1;
+}
+
+.phpcc-modal-close:hover {
+	color: #1d2327;
+}
+
+.phpcc-modal h2 {
+	margin-top: 0;
+	padding-right: 30px;
+}
+
+/* Issue List in Modal */
+.phpcc-issue-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.phpcc-issue-item {
+	border-bottom: 1px solid #c3c4c7;
+	padding: 12px 0;
+}
+
+.phpcc-issue-item:last-child {
+	border-bottom: none;
+}
+
+.phpcc-issue-header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 5px;
+}
+
+.phpcc-issue-type {
+	display: inline-block;
+	padding: 2px 6px;
+	border-radius: 3px;
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+}
+
+.phpcc-issue-type-error {
+	background: #d63638;
+	color: #fff;
+}
+
+.phpcc-issue-type-warning {
+	background: #dba617;
+	color: #1d2327;
+}
+
+.phpcc-issue-file {
+	font-family: monospace;
+	font-size: 12px;
+	color: #2271b1;
+}
+
+.phpcc-issue-line {
+	color: #646970;
+	font-size: 12px;
+}
+
+.phpcc-issue-message {
+	color: #1d2327;
+	margin: 5px 0;
+}
+
+.phpcc-issue-source {
+	color: #646970;
+	font-size: 11px;
+	font-style: italic;
+}
+
+/* Loading State */
+.phpcc-loading {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+#phpcc-rescan.loading {
+	position: relative;
+}
+
+#phpcc-rescan.loading::after {
+	content: '';
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	border: 2px solid currentColor;
+	border-top-color: transparent;
+	border-radius: 50%;
+	margin-left: 8px;
+	animation: phpcc-spin 1s linear infinite;
+	vertical-align: middle;
+}
+
+@keyframes phpcc-spin {
+	to { transform: rotate(360deg); }
+}
+
+/* No Results */
+.phpcc-no-results {
+	background: #f6f7f7;
+	border: 1px dashed #c3c4c7;
+	border-radius: 4px;
+	padding: 40px;
+	text-align: center;
+	color: #646970;
+}
+
+/* System Info Table */
+.phpcc-sysinfo-table {
+	max-width: 600px;
+}
+
+.phpcc-sysinfo-table th {
+	width: 40%;
+}
+
+/* Notice Enhancements */
+.notice code {
+	background: #f0f0f1;
+	padding: 8px 12px;
+	display: inline-block;
+	margin: 10px 0;
+	border-radius: 4px;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+	.phpcc-stats {
+		grid-template-columns: repeat(2, 1fr);
+	}
+
+	.phpcc-controls {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.phpcc-filter {
+		margin-left: 0;
+		width: 100%;
+	}
+
+	.phpcc-table th,
+	.phpcc-table td {
+		padding: 8px;
+	}
+
+	.phpcc-modal-content {
+		margin: 10% 20px;
+		max-height: 70vh;
+	}
+}
