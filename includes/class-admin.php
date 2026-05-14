@@ -485,3 +485,5 @@ class PHPCC_Admin {
 
         return $incompatible;
     }
+
+}
