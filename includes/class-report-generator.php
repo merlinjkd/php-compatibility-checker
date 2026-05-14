@@ -65,7 +65,7 @@ class PHPCC_Report_Generator {
             }
         }
 
-        $overall_score = $total > 0 ? round(array_sum(array_column($results, 'readiness_score')) / $total) : 0;
+        $overall_score = $total > 0 ? (int) round(array_sum(array_column($results, 'readiness_score')) / $total) : 0;
         $overall_status = $this->score_to_status($overall_score, $critical);
 
         return [
