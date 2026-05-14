@@ -226,11 +226,18 @@ class PHPCC_Feature_Detector {
 
     private function get_php_files(string $path): array {
         $files = [];
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path));
-        foreach ($iterator as $file) {
-            if ($file->isFile() && $file->getExtension() === 'php') {
-                $files[] = $file->getPathname();
+        if (!is_dir($path)) {
+            return $files;
+        }
+        try {
+            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS));
+            foreach ($iterator as $file) {
+                if ($file->isFile() && $file->getExtension() === 'php') {
+                    $files[] = $file->getPathname();
+                }
             }
+        } catch (Throwable $e) {
+            // Directory couldn't be iterated — skip silently
         }
         return $files;
     }

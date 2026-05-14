@@ -254,6 +254,17 @@ class PHPCC_Admin {
         echo '<tr><th>' . esc_html__('Server OS', 'phpcc') . '</th><td>' . esc_html(PHP_OS) . '</td></tr>';
         echo '<tr><th>' . esc_html__('Server API', 'phpcc') . '</th><td>' . esc_html(php_sapi_name()) . '</td></tr>';
 
+        // PHP Scan Function Requirements
+        echo '<tr><th>' . esc_html__('Required Functions', 'phpcc') . '</th><td>';
+        $reqs = $this->scanner->check_system_requirements();
+        if ($reqs['pass']) {
+            echo '<span style="color:#00a32a;">✓ All required functions available</span>';
+        } else {
+            echo '<span style="color:#d63638;">✗ Missing: ' . esc_html(implode(', ', $reqs['missing'])) . '</span>';
+            echo '<p style="color:#646970;">Contact your hosting provider to enable these functions in php.ini.</p>';
+        }
+        echo '</td></tr>';
+
         $phpcs_available = $this->scanner->is_phpcs_available();
         echo '<tr><th>' . esc_html__('PHPCS Available', 'phpcc') . '</th><td>' . ($phpcs_available ? esc_html__('Yes (bundled)', 'phpcc') : esc_html__('No', 'phpcc')) . '</td></tr>';
 
@@ -288,19 +299,60 @@ class PHPCC_Admin {
     public function ajax_rescan(): void {
         check_ajax_referer('phpcc_nonce', 'nonce');
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => 'Permission denied'], 403);
+            wp_send_json_error(['message' => 'Permission denied']);
+            return;
+        }
+
+        // Check system requirements first
+        $reqs = $this->scanner->check_system_requirements();
+        if (!$reqs['pass']) {
+            wp_send_json_error([
+                'message' => sprintf(
+                    'PHP function(s) disabled: %s. Contact your host to enable them.',
+                    implode(', ', $reqs['missing'])
+                ),
+            ]);
+            return;
         }
 
         $this->scanner->clear_cache();
 
         if (!$this->scanner->is_phpcs_available()) {
-            wp_send_json_error(['message' => 'PHPCS is not available.'], 500);
+            wp_send_json_error(['message' => 'PHPCS is not available. Please reinstall the plugin.']);
+            return;
         }
 
-        $results = $this->scanner->scan_all();
+        // Timeout safe-guard: run scan with try/catch for fatal errors
+        try {
+            $results = $this->scanner->scan_all();
+        } catch (Throwable $e) {
+            wp_send_json_error([
+                'message' => 'Scan crashed: ' . $e->getMessage(),
+                'file'    => $e->getFile() . ':' . $e->getLine(),
+            ]);
+            return;
+        }
 
         if (empty($results)) {
-            wp_send_json_error(['message' => 'No components found to scan.'], 500);
+            wp_send_json_error(['message' => 'No components found to scan.']);
+            return;
+        }
+
+        // Check if all results were errors
+        $all_errors = true;
+        $first_error = '';
+        foreach ($results as $r) {
+            if (!is_wp_error($r)) {
+                $all_errors = false;
+                break;
+            } elseif (empty($first_error)) {
+                $first_error = $r->get_error_message();
+            }
+        }
+
+        if ($all_errors && !empty($first_error)) {
+            wp_send_json_error(['message' => 'Scan failed: ' . $first_error]);
+            return;
         }
 
         wp_send_json_success([
@@ -321,17 +373,20 @@ class PHPCC_Admin {
     public function ajax_get_detail(): void {
         check_ajax_referer('phpcc_nonce', 'nonce');
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => 'Permission denied'], 403);
+            wp_send_json_error(['message' => 'Permission denied']);
+            return;
         }
 
         $slug = sanitize_text_field($_POST['slug'] ?? '');
         if (empty($slug)) {
-            wp_send_json_error(['message' => 'No slug provided'], 400);
+            wp_send_json_error(['message' => 'No slug provided']);
+            return;
         }
 
         $results = $this->scanner->get_cached_results();
         if (empty($results)) {
-            wp_send_json_error(['message' => 'No cached results'], 404);
+            wp_send_json_error(['message' => 'No cached results — run a scan first']);
+            return;
         }
 
         foreach ($results as $result) {
@@ -342,18 +397,20 @@ class PHPCC_Admin {
             }
         }
 
-        wp_send_json_error(['message' => 'Component not found'], 404);
+        wp_send_json_error(['message' => 'Component not found in cached results']);
     }
 
     public function ajax_export_markdown(): void {
         check_ajax_referer('phpcc_nonce', 'nonce');
         if (!current_user_can('manage_options')) {
-            wp_send_json_error(['message' => 'Permission denied'], 403);
+            wp_send_json_error(['message' => 'Permission denied']);
+            return;
         }
 
         $results = $this->scanner->get_cached_results();
         if (empty($results)) {
-            wp_send_json_error(['message' => 'No scan results to export'], 404);
+            wp_send_json_error(['message' => 'No scan results to export']);
+            return;
         }
 
         $markdown = $this->report->export_markdown($results);

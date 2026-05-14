@@ -24,8 +24,15 @@
                 } else {
                     alert(PHPCC_Vars.strings.errorPrefix + ' ' + (response.data?.message || 'Unknown error'));
                 }
-            }).fail(function() {
-                alert(PHPCC_Vars.strings.errorPrefix + ' Server error. Check System Info.');
+            }).fail(function(jqXHR) {
+                var msg = PHPCC_Vars.strings.errorPrefix + ' Server error. Check System Info.';
+                try {
+                    var resp = JSON.parse(jqXHR.responseText);
+                    if (resp && resp.data && resp.data.message) {
+                        msg = PHPCC_Vars.strings.errorPrefix + ' ' + resp.data.message;
+                    }
+                } catch(e) {}
+                alert(msg);
             }).always(function() {
                 $btn.removeClass('loading').text(PHPCC_Vars.strings.rescan);
             });

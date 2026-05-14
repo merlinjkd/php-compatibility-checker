@@ -18,6 +18,9 @@ class PHPCC_Scanner {
     private $standards_path;
     private $max_exec_time = 300;
 
+    // Required PHP functions for scanning
+    private $required_functions = ['proc_open', 'shell_exec', 'proc_get_status', 'proc_terminate'];
+
     // PHP 8 specific rules we care about
     private $critical_sources = [
         'PHPCompatibility.FunctionUse.RemovedFunctions',
@@ -49,6 +52,7 @@ class PHPCC_Scanner {
 
     public function get_phpcs_version(): ?string {
         if (!$this->is_phpcs_available()) return null;
+        if (!function_exists('shell_exec')) return null;
         $cmd = sprintf('php %s --version 2>&1', escapeshellarg($this->phpcs_path));
         $output = shell_exec($cmd);
         if (preg_match('/version\s+(\d+\.\d+\.\d+)/i', $output, $m)) return $m[1];
@@ -63,11 +67,34 @@ class PHPCC_Scanner {
     }
 
     /**
+     * Check if required PHP process functions are available
+     */
+    public function check_system_requirements(): array {
+        $missing = [];
+        foreach ($this->required_functions as $func) {
+            if (!function_exists($func)) {
+                $missing[] = $func;
+            }
+        }
+        return [
+            'pass'   => empty($missing),
+            'missing'=> $missing,
+        ];
+    }
+
+    /**
      * Scan all plugins and themes for PHP 8 readiness
      */
     public function scan_all(): array {
         require_once PHPCC_PLUGIN_DIR . 'includes/class-feature-detector.php';
         require_once PHPCC_PLUGIN_DIR . 'includes/class-impact-analyzer.php';
+
+        // Increase memory for large scans
+        if (function_exists('wp_raise_memory_limit')) {
+            wp_raise_memory_limit('admin');
+        } elseif (function_exists('ini_set')) {
+            @ini_set('memory_limit', '512M');
+        }
 
         $results = [];
         $feature_detector = new PHPCC_Feature_Detector();
@@ -77,29 +104,50 @@ class PHPCC_Scanner {
             return [new WP_Error('phpcs_not_found', 'PHPCS not available. Please reinstall the plugin.')];
         }
 
+        // Check required PHP functions
+        $reqs = $this->check_system_requirements();
+        if (!$reqs['pass']) {
+            return [new WP_Error(
+                'missing_functions',
+                sprintf(
+                    'Required PHP functions are disabled: %s. Contact your host to enable them.',
+                    implode(', ', $reqs['missing'])
+                )
+            )];
+        }
+
         // Scan plugins
         $plugins = get_plugins();
         foreach ($plugins as $file => $data) {
-            $plugin_dir = $this->get_plugin_path($file);
-            if (!$plugin_dir || !file_exists($plugin_dir)) continue;
+            try {
+                $plugin_dir = $this->get_plugin_path($file);
+                if (!$plugin_dir || !file_exists($plugin_dir)) continue;
 
-            $scan = $this->scan_component($plugin_dir, 'plugin', $file, $data, $feature_detector, $impact_analyzer);
-            if (!is_wp_error($scan)) {
-                $results[] = $scan;
+                $scan = $this->scan_component($plugin_dir, 'plugin', $file, $data, $feature_detector, $impact_analyzer);
+                if (!is_wp_error($scan)) {
+                    $results[] = $scan;
+                }
+            } catch (Throwable $e) {
+                // Log plugin scan failure and continue
+                $results[] = $this->error_result($file, $data, $e);
             }
         }
 
         // Scan active theme
-        $theme = wp_get_theme();
-        $theme_dir = $theme->get_stylesheet_directory();
-        if (file_exists($theme_dir)) {
-            $scan = $this->scan_component($theme_dir, 'theme', $theme->get_stylesheet(), [
-                'Name'    => $theme->get('Name'),
-                'Version' => $theme->get('Version'),
-            ], $feature_detector, $impact_analyzer);
-            if (!is_wp_error($scan)) {
-                $results[] = $scan;
+        try {
+            $theme = wp_get_theme();
+            $theme_dir = $theme->get_stylesheet_directory();
+            if (file_exists($theme_dir)) {
+                $scan = $this->scan_component($theme_dir, 'theme', $theme->get_stylesheet(), [
+                    'Name'    => $theme->get('Name'),
+                    'Version' => $theme->get('Version'),
+                ], $feature_detector, $impact_analyzer);
+                if (!is_wp_error($scan)) {
+                    $results[] = $scan;
+                }
             }
+        } catch (Throwable $e) {
+            $results[] = $this->error_result('active-theme', ['Name' => 'Active Theme', 'Version' => ''], $e, 'theme');
         }
 
         $this->cache_results($results);
@@ -296,9 +344,13 @@ class PHPCC_Scanner {
             2 => ['pipe', 'w'],
         ];
 
-        $process = proc_open($cmd, $descriptors, $pipes);
+        try {
+            $process = @proc_open($cmd, $descriptors, $pipes);
+        } catch (Throwable $e) {
+            $process = false;
+        }
         if (!is_resource($process)) {
-            return new WP_Error('process_failed', 'Failed to start PHPCS process');
+            return new WP_Error('process_failed', 'Failed to start PHPCS process. Check that proc_open() is not disabled and PHP CLI is available.');
         }
 
         fclose($pipes[0]);
@@ -334,24 +386,55 @@ class PHPCC_Scanner {
 
     // Cache methods
     public function cache_results(array $results): void {
+        // Filter out WP_Error entries before caching
+        $clean = [];
+        foreach ($results as $r) {
+            if (is_array($r) && isset($r['slug'])) {
+                $clean[] = $r;
+            }
+        }
         $key = 'phpcc_scan_results_v2';
         $ttl = HOUR_IN_SECONDS;
         if (is_multisite()) {
-            set_site_transient($key, $results, $ttl);
+            set_site_transient($key, $clean, $ttl);
         } else {
-            set_transient($key, $results, $ttl);
+            set_transient($key, $clean, $ttl);
         }
     }
 
     public function get_cached_results() {
         $key = 'phpcc_scan_results_v2';
-        if (is_multisite()) return get_site_transient($key);
-        return get_transient($key);
+        $data = is_multisite() ? get_site_transient($key) : get_transient($key);
+        if (!is_array($data)) return false;
+        // Strip any WP_Error objects that may have snuck in
+        return array_values(array_filter($data, function($r) { return is_array($r) && isset($r['slug']); }));
     }
 
     public function clear_cache(): void {
         $key = 'phpcc_scan_results_v2';
         if (is_multisite()) delete_site_transient($key);
         else delete_transient($key);
+    }
+
+    /**
+     * Create a placeholder result for a component that crashed during scanning
+     */
+    private function error_result($slug, array $info, Throwable $e, string $type = 'plugin'): array {
+        return [
+            'slug'            => $slug,
+            'name'            => $info['Name'] ?? $slug,
+            'version'         => $info['Version'] ?? 'unknown',
+            'type'            => $type,
+            'status'          => 'Error',
+            'php_min'         => 'unknown',
+            'php_max'         => 'unknown',
+            'issues'          => ['critical' => [], 'warning' => [], 'info' => []],
+            'issue_counts'    => ['critical' => 0, 'warning' => 0, 'info' => 0],
+            'readiness_score' => 0,
+            'readiness_label' => 'Scan Error',
+            'features'        => [],
+            'impact'          => null,
+            'scan_error'      => $e->getMessage(),
+        ];
     }
 }
