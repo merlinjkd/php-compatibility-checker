@@ -110,6 +110,43 @@
     padding: 5px;
 }
 
+/* Controls separator */
+.phpcc-controls-separator {
+    display: inline-block;
+    width: 1px;
+    height: 28px;
+    background: #c3c4c7;
+    margin: 0 4px;
+}
+
+/* Warning button */
+.button-warning {
+    background: #dba617 !important;
+    border-color: #c49a14 !important;
+    color: #1d2327 !important;
+}
+
+.button-warning:hover,
+.button-warning:focus {
+    background: #c49a14 !important;
+    border-color: #ab8807 !important;
+    color: #1d2327 !important;
+}
+
+/* Success button for restore */
+.button-success {
+    background: #00a32a !important;
+    border-color: #008a20 !important;
+    color: #fff !important;
+}
+
+.button-success:hover,
+.button-success:focus {
+    background: #008a20 !important;
+    border-color: #007017 !important;
+    color: #fff !important;
+}
+
 /* Cards Grid */
 .phpcc-cards-grid {
     display: grid;

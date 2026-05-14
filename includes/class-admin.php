@@ -176,6 +176,14 @@ class PHPCC_Admin {
         echo '<button id="phpcc-export-markdown" class="button">' . esc_html__('Download Markdown', 'phpcc') . '</button>';
         echo '<button id="phpcc-clear-cache" class="button">' . esc_html__('Clear Results', 'phpcc') . '</button>';
 
+        // Deactivation tools
+        echo '<span class="phpcc-controls-separator"></span>';
+        echo '<button id="phpcc-deactivate-bad" class="button button-warning" title="' . esc_attr__('Deactivate all plugins with PHP 8 compatibility issues', 'phpcc') . '">' . esc_html__('Deactivate Incompatible', 'phpcc') . '</button>';
+        $has_backup = get_option('phpcc_plugin_state_backup');
+        if (!empty($has_backup)) {
+            echo '<button id="phpcc-restore-plugins" class="button" title="' . esc_attr__('Restore plugins to state before last deactivation', 'phpcc') . '">' . esc_html__('Restore Previous State', 'phpcc') . '</button>';
+        }
+
         // Filters
         echo '<select id="phpcc-filter" class="phpcc-filter">';
         echo '<option value="all">' . esc_html__('All Components', 'phpcc') . '</option>';
@@ -351,4 +359,129 @@ class PHPCC_Admin {
         $markdown = $this->report->export_markdown($results);
         wp_send_json_success(['markdown' => $markdown]);
     }
-}
+
+    public function ajax_deactivate_incompatible(): void {
+        check_ajax_referer('phpcc_nonce', 'nonce');
+        if (!current_user_can('activate_plugins')) {
+            wp_send_json_error(['message' => 'Permission denied'], 403);
+        }
+
+        // Get scan results to determine incompatibility
+        $results = $this->scanner->get_cached_results();
+        if (empty($results)) {
+            wp_send_json_error(['message' => 'No scan results. Run a scan first.'], 400);
+        }
+
+        if (isset($_POST['preview']) && $_POST['preview'] === '1') {
+            // Preview mode: just list what would be deactivated
+            $to_deactivate = $this->get_incompatible_plugins($results);
+            wp_send_json_success([
+                'preview'     => true,
+                'count'       => count($to_deactivate),
+                'plugins'     => $to_deactivate,
+            ]);
+            return;
+        }
+
+        // Execute deactivation
+        // 1. Save current plugin state for undo
+        $current_state = [];
+        $all_plugins = get_plugins();
+        foreach ($all_plugins as $file => $data) {
+            $current_state[$file] = is_plugin_active($file);
+        }
+        update_option('phpcc_plugin_state_backup', $current_state, false);
+
+        // 2. Deactivate incompatible plugins
+        $to_deactivate = $this->get_incompatible_plugins($results);
+        $deactivated = [];
+        foreach ($to_deactivate as $p) {
+            if (is_plugin_active($p['file'])) {
+                deactivate_plugins($p['file'], true);
+                $deactivated[] = $p;
+            }
+        }
+
+        wp_send_json_success([
+            'preview'       => false,
+            'count'         => count($deactivated),
+            'plugins'       => $deactivated,
+            'message'       => sprintf(
+                __('Deactivated %d incompatible plugin(s)', 'phpcc'),
+                count($deactivated)
+            ),
+        ]);
+    }
+
+    public function ajax_restore_plugins(): void {
+        check_ajax_referer('phpcc_nonce', 'nonce');
+        if (!current_user_can('activate_plugins')) {
+            wp_send_json_error(['message' => 'Permission denied'], 403);
+        }
+
+        $backup = get_option('phpcc_plugin_state_backup');
+        if (empty($backup) || !is_array($backup)) {
+            wp_send_json_error(['message' => 'No plugin state backup found'], 404);
+        }
+
+        $restored = [];
+        $failed = [];
+
+        foreach ($backup as $file => $was_active) {
+            if ($was_active && !is_plugin_active($file)) {
+                $result = activate_plugin($file, '', false, true);
+                if (is_wp_error($result)) {
+                    $failed[] = ['file' => $file, 'error' => $result->get_error_message()];
+                } else {
+                    $restored[] = $file;
+                }
+            }
+        }
+
+        delete_option('phpcc_plugin_state_backup');
+
+        wp_send_json_success([
+            'restored' => count($restored),
+            'failed'   => count($failed),
+            'message'  => sprintf(
+                __('Restored %d plugin(s)', 'phpcc'),
+                count($restored)
+            ),
+            'errors'   => $failed,
+        ]);
+    }
+
+    /**
+     * Determine which active plugins are incompatible with PHP 8+
+     */
+    private function get_incompatible_plugins(array $results): array {
+        $incompatible = [];
+        foreach ($results as $r) {
+            if ($r['type'] !== 'plugin') continue;
+            if ($r['status'] !== 'Active') continue;
+
+            $critical = $r['issue_counts']['critical'] ?? 0;
+            $score = $r['readiness_score'] ?? 100;
+
+            // Incompatible if has critical issues or very low readiness score
+            if ($critical > 0 || $score < 70) {
+                $incompatible[] = [
+                    'file'    => $r['slug'],
+                    'name'    => $r['name'],
+                    'version' => $r['version'],
+                    'critical'=> $critical,
+                    'score'   => $score,
+                    'reason'  => $critical > 0
+                        ? sprintf(__('%d critical PHP 8 issue(s)', 'phpcc'), $critical)
+                        : sprintf(__('Readiness score: %d%%', 'phpcc'), $score),
+                ];
+            }
+        }
+
+        // Sort by critical count descending
+        usort($incompatible, function($a, $b) {
+            return $b['critical'] <=> $a['critical'];
+        });
+
+        return $incompatible;
+    }

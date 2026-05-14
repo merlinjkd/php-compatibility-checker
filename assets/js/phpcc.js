@@ -138,6 +138,99 @@
             });
         });
 
+        // ---- Deactivate Incompatible Plugins ----
+        $('#phpcc-deactivate-bad').on('click', function(e) {
+            e.preventDefault();
+            var $btn = $(this);
+
+            // Step 1: Preview what will be deactivated
+            $btn.prop('disabled', true).text('Checking...');
+
+            $.post(PHPCC_Vars.ajaxUrl, {
+                action: 'phpcc_deactivate_incompatible',
+                preview: '1',
+                nonce: PHPCC_Vars.nonce
+            }, function(response) {
+                $btn.prop('disabled', false).text('Deactivate Incompatible');
+
+                if (response.success && response.data.preview) {
+                    var plugins = response.data.plugins;
+
+                    if (plugins.length === 0) {
+                        alert('No incompatible active plugins found. All your plugins appear PHP 8 compatible.');
+                        return;
+                    }
+
+                    // Build a confirmation message
+                    var msg = 'The following ' + plugins.length + ' plugin(s) will be deactivated:\n\n';
+                    plugins.forEach(function(p) {
+                        msg += '  ' + p.name + ' v' + p.version + ' (' + p.reason + ')\n';
+                    });
+                    msg += '\nA backup will be saved so you can undo. Proceed?';
+
+                    if (confirm(msg)) {
+                        // Step 2: Execute
+                        $btn.prop('disabled', true).text('Deactivating...');
+
+                        $.post(PHPCC_Vars.ajaxUrl, {
+                            action: 'phpcc_deactivate_incompatible',
+                            nonce: PHPCC_Vars.nonce
+                        }, function(execResponse) {
+                            if (execResponse.success) {
+                                var names = execResponse.data.plugins.map(function(p) { return p.name; }).join('\n  ');
+                                var resultMsg = 'Deactivated ' + execResponse.data.count + ' plugin(s):\n\n  ' + names + '\n\nA backup was saved. Use "Restore Previous State" to undo.';
+                                alert(resultMsg);
+                                location.reload();
+                            } else {
+                                alert('Deactivation failed: ' + (execResponse.data?.message || 'Unknown'));
+                            }
+                        }).fail(function() {
+                            alert('Deactivation request failed.');
+                        }).always(function() {
+                            $btn.prop('disabled', false).text('Deactivate Incompatible');
+                        });
+                    }
+                } else {
+                    alert('Preview failed: ' + (response.data?.message || 'Run a scan first'));
+                    $btn.prop('disabled', false).text('Deactivate Incompatible');
+                }
+            }).fail(function() {
+                $btn.prop('disabled', false).text('Deactivate Incompatible');
+                alert('Failed to check for incompatible plugins.');
+            });
+        });
+
+        // ---- Restore Previous Plugin State ----
+        $('#phpcc-restore-plugins').on('click', function(e) {
+            e.preventDefault();
+            var $btn = $(this);
+
+            if (!confirm('Restore all plugins to their state before the last deactivation?')) return;
+
+            $btn.prop('disabled', true).text('Restoring...');
+
+            $.post(PHPCC_Vars.ajaxUrl, {
+                action: 'phpcc_restore_plugins',
+                nonce: PHPCC_Vars.nonce
+            }, function(response) {
+                if (response.success) {
+                    var msg = 'Restored ' + response.data.restored + ' plugin(s).';
+                    if (response.data.failed > 0) {
+                        var errors = response.data.errors.map(function(e) { return e.file + ': ' + e.error; }).join('\n');
+                        msg += '\n\n' + response.data.failed + ' plugin(s) could not be restored:\n' + errors;
+                    }
+                    alert(msg);
+                    location.reload();
+                } else {
+                    alert('Restore failed: ' + (response.data?.message || 'No backup found'));
+                }
+            }).fail(function() {
+                alert('Restore request failed.');
+            }).always(function() {
+                $btn.prop('disabled', false).text('Restore Previous State');
+            });
+        });
+
         // ---- Filter Cards ----
         $('#phpcc-filter').on('change', function() {
             var filter = $(this).val();
