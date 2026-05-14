@@ -413,7 +413,7 @@ class PHPCC_Report_Generator {
         $widgets = array_sum(array_column($impact['widget_usage'] ?? [], 'count'));
         if ($widgets > 0) $details['widget_instances'] = $widgets;
 
-        $options = count(array_filter($impact['option_values'] ?? [], fn($o) => !empty($o['has_value'])));
+        $options = count(array_filter($impact['option_values'] ?? [], function($o) { return !empty($o['has_value']); }));
         if ($options > 0) $details['config_options'] = $options;
 
         $db = array_sum(array_column($impact['db_table_rows'] ?? [], 'rows'));

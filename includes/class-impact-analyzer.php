@@ -113,7 +113,7 @@ class PHPCC_Impact_Analyzer {
             );
         }
 
-        $non_empty_options = count(array_filter($impact['option_values'], fn($o) => !empty($o['value'])));
+        $non_empty_options = count(array_filter($impact['option_values'], function($o) { return !empty($o['value']); }));
         if ($non_empty_options > 0) {
             $parts[] = sprintf(
                 '**%d configuration option(s)** will be lost.',
@@ -313,7 +313,7 @@ class PHPCC_Impact_Analyzer {
         $total_widgets = array_sum(array_column($impact['widget_usage'], 'count'));
         $score += $total_widgets * 10;
 
-        $non_empty_options = count(array_filter($impact['option_values'], fn($o) => !empty($o['has_value']) && empty($o['is_empty'])));
+        $non_empty_options = count(array_filter($impact['option_values'], function($o) { return !empty($o['has_value']) && empty($o['is_empty']); }));
         $score += $non_empty_options * 5;
 
         $total_db = array_sum(array_column($impact['db_table_rows'], 'rows'));
