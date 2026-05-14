@@ -4,7 +4,7 @@ Tags: compatibility, phpcs, php compatibility, php 8, php 8.1, static analysis, 
 Requires at least: 5.8
 Tested up to: 6.8
 Requires PHP: 7.2
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,15 @@ Impact analysis counts your actual site content that depends on the plugin (shor
 
 == Changelog ==
 
+= 2.0.1 =
+* Fixed: Critical type error — round() returning float to int-hinted parameter
+* Fixed: esc_js() corrupting JSON in detail modal templates
+* Fixed: jQuery selector failing on slugs with dots/slashes
+* Fixed: Arrow functions replaced with closures for PHP 7.2 compatibility
+
+= 2.0.1 =
+Hotfix: type error, modal rendering, PHP 7.2 compatibility
+
 = 2.0.0 =
 * **Major rewrite** — comprehensive v2 architecture
 * Added feature detection (shortcodes, CPTs, taxonomies, widgets, blocks, hooks, REST, cron, WooCommerce, DB tables, options)
@@ -128,6 +137,9 @@ Impact analysis counts your actual site content that depends on the plugin (shor
 * CSV export
 
 == Upgrade Notice ==
+
+= 2.0.1 =
+Hotfix: type error, modal rendering, PHP 7.2 compatibility
 
 = 2.0.0 =
 Major upgrade — feature detection, impact analysis, and human-readable readiness reports. Clear your cache after upgrading for full v2 data.
