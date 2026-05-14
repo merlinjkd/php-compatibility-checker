@@ -138,15 +138,16 @@
         });
 
         function openDetailModal(slug) {
-            // First try cached template
-            var template = $('#phpcc-detail-' + slug);
-            if (template.length) {
+            // Use getElementById to avoid jQuery selector issues with dots/slashes in slugs
+            var templateId = 'phpcc-detail-' + slug;
+            var templateEl = document.getElementById(templateId);
+            if (templateEl) {
                 try {
-                    var report = JSON.parse(template.text());
+                    var report = JSON.parse(templateEl.textContent);
                     renderModal(report);
                     return;
                 } catch (e) {
-                    // fall through to AJAX
+                    console.warn('Template parse error, falling back to AJAX:', e);
                 }
             }
 

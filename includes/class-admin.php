@@ -72,9 +72,9 @@ class PHPCC_Admin {
         if ($results && is_array($results)) {
             foreach ($results as $result) {
                 $component_report = $this->report->build_component_report($result);
-                echo '<script type="text/template" id="phpcc-detail-' . esc_attr($result['slug']) . '">';
-                echo esc_js(wp_json_encode($component_report));
-                echo '</script>';
+                echo '<script type="text/template" id="phpcc-detail-' . esc_attr($result['slug']) . '">' . "\n";
+                echo wp_json_encode($component_report, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS);
+                echo "\n" . '</script>';
             }
         }
     }
