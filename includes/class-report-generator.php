@@ -429,9 +429,140 @@ class PHPCC_Report_Generator {
         return $details;
     }
 
+    /**
+     * Export results as Markdown report
+     */
+    public function export_markdown(array $results): string {
+        $summary = $this->build_executive_summary($results);
+        $md = '';
+
+        // Header
+        $md = sprintf("# PHP 8 Readiness Report\n\n**Generated:** %s\n**Site:** %s\n**PHP Version:** %s\n\n",
+            current_time('mysql'),
+            get_bloginfo('name'),
+            phpversion()
+        );
+
+        // Executive summary
+        $md .= "## Executive Summary\n\n";
+        $md .= sprintf("| Metric | Value |\n|---|---|\n");
+        $md .= sprintf("| **Site Readiness Score** | %d%% |\n", $summary['overall_score']);
+        $md .= sprintf("| **Components Scanned** | %d |\n", $summary['total_components']);
+        $md .= sprintf("| **PHP 8 Ready** | %d |\n", $summary['ready_count']);
+        $md .= sprintf("| **Critical Issues** | %d |\n", $summary['critical_count']);
+        $md .= sprintf("| **Need Review** | %d |\n", $summary['warning_count']);
+        $md .= sprintf("| **Plugins with Content Impact** | %d |\n\n", $summary['plugins_with_impact'] ?? 0);
+
+        // Risky plugins
+        if (!empty($summary['risky_plugins'])) {
+            $md .= "### Requires Immediate Action\n\n";
+            foreach ($summary['risky_plugins'] as $plugin) {
+                $md .= sprintf("- **%s** — %s", $plugin['name'], $plugin['reason']);
+                if ($plugin['impact'] !== 'low' && $plugin['impact'] !== 'unknown') {
+                    $md .= sprintf(" *(Site impact: %s)*", ucfirst($plugin['impact']));
+                }
+                $md .= "\n";
+            }
+            $md .= "\n";
+        }
+
+        // Per-component details
+        $md .= "## Component Details\n\n";
+
+        foreach ($results as $r) {
+            $md .= $this->component_to_markdown($r);
+            $md .= "\n---\n\n";
+        }
+
+        return $md;
+    }
+
+    /**
+     * Generate Markdown for a single component
+     */
+    private function component_to_markdown(array $r): string {
+        $score = $r['readiness_score'] ?? 0;
+        $label = $r['readiness_label'] ?? 'Unknown';
+        $critical = $r['issue_counts']['critical'] ?? 0;
+        $warning = $r['issue_counts']['warning'] ?? 0;
+        $info = $r['issue_counts']['info'] ?? 0;
+
+        $md = sprintf("### %s v%s\n\n", $r['name'], $r['version']);
+        $md .= sprintf("**Type:** %s | **Status:** %s\n\n", ucfirst($r['type']), $r['status']);
+
+        // Readiness
+        $icon = $score >= 95 ? '✅' : ($score >= 70 ? '⚠️' : '❌');
+        $md .= sprintf("%s **PHP 8 Readiness: %d%%** — %s\n\n", $icon, $score, $label);
+
+        // Stats
+        $md .= "| Category | Count |\n|---|---|\n";
+        $md .= sprintf("| Critical Issues | %d |\n", $critical);
+        $md .= sprintf("| Warnings | %d |\n", $warning);
+        $md .= sprintf("| Informational | %d |\n", $info);
+
+        // Max PHP
+        $max = $r['php_max'] ?? 'unknown';
+        if ($critical > 0) {
+            $md .= sprintf("| Max Compatible PHP | **%s** |\n\n", $max);
+        } else {
+            $md .= sprintf("| Max Compatible PHP | %s |\n\n", $max);
+        }
+
+        // Issues
+        $issues = $r['issues'] ?? [];
+        if (!empty($issues['critical'])) {
+            $md .= "#### 🔴 Critical Issues\n\n";
+            foreach (array_slice($issues['critical'], 0, 10) as $issue) {
+                $md .= sprintf("- `%s:%d` %s\n", $issue['file'], $issue['line'], $issue['message']);
+            }
+            if (count($issues['critical']) > 10) {
+                $md .= sprintf("  _...and %d more_\n", count($issues['critical']) - 10);
+            }
+            $md .= "\n";
+        }
+
+        if (!empty($issues['warning'])) {
+            $md .= "#### 🟡 Warnings\n\n";
+            foreach (array_slice($issues['warning'], 0, 10) as $issue) {
+                $md .= sprintf("- `%s:%d` %s\n", $issue['file'], $issue['line'], $issue['message']);
+            }
+            if (count($issues['warning']) > 10) {
+                $md .= sprintf("  _...and %d more_\n", count($issues['warning']) - 10);
+            }
+            $md .= "\n";
+        }
+
+        // Features
+        if (!empty($r['features'])) {
+            $md .= "#### 📋 Features Provided\n\n";
+            foreach ($r['features'] as $f) {
+                $md .= sprintf("- **%s:** %s\n", $f['label'], $f['description']);
+            }
+            $md .= "\n";
+        }
+
+        // Impact
+        if (!empty($r['impact']) && ($r['impact']['overall_risk'] ?? 'low') !== 'low') {
+            require_once PHPCC_PLUGIN_DIR . 'includes/class-impact-analyzer.php';
+            $analyzer = new PHPCC_Impact_Analyzer();
+            $impact_summary = $analyzer->get_impact_summary($r['impact']);
+
+            $risk = $r['impact']['overall_risk'] ?? 'low';
+            $risk_icon = $risk === 'critical' ? '🔴' : ($risk === 'high' ? '🟠' : '🟡');
+            $md .= sprintf("#### %s Removal Impact: **%s**\n\n", $risk_icon, ucfirst($risk));
+            $md .= strip_tags($impact_summary) . "\n\n";
+
+            if (!empty($r['impact']['recommendation'])) {
+                $md .= "**Recommendation:** " . strip_tags($r['impact']['recommendation']) . "\n\n";
+            }
+        }
+
+        return $md;
+    }
+
     private function csv_escape(string $text): string {
-        if (strpos($text, ',') !== false || strpos($text, '"') !== false || strpos($text, "\n") !== false) {
-            return '"' . str_replace('"', '""', $text) . '"';
+        if (strpos($text, ",") !== false || strpos($text, "\"") !== false || strpos($text, "\n") !== false) {
+            return "\"" . str_replace("\"", "\"\"", $text) . "\"";
         }
         return $text;
     }

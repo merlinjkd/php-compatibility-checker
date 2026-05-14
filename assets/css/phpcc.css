@@ -414,38 +414,128 @@
     to { transform: rotate(360deg); }
 }
 
-/* Print styles */
+/* Print styles — 8.5x11 with 0.5in margins */
 @media print {
+    @page {
+        size: letter;
+        margin: 0.5in;
+    }
+
+    html, body {
+        background: #fff !important;
+        font-size: 11pt;
+        line-height: 1.5;
+        color: #000;
+    }
+
     .phpcc-controls,
     .phpcc-modal-close,
     .phpcc-card-details-btn,
     #adminmenuwrap,
+    #adminmenuback,
     #wpadminbar,
     #screen-meta-links,
     .notice,
     .wp-header-end,
     .page-title-action,
-    #footer-upgrade {
+    #footer-upgrade,
+    #wpfooter,
+    .auto-fold #wpcontent,
+    #adminmenu,
+    #adminmenumain {
         display: none !important;
     }
     
-    #wpcontent {
-        margin-left: 0 !important;
+    #wpcontent, #wpbody, #wpbody-content {
+        margin: 0 !important;
+        padding: 0 !important;
+        float: none !important;
+        position: static !important;
+    }
+    
+    .wrap {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .phpcc-wrap {
+        max-width: 100% !important;
+    }
+    
+    /* Executive summary fits page width */
+    .phpcc-executive {
+        border: 1px solid #ccc !important;
+        padding: 12pt !important;
+        margin: 0 0 16pt 0 !important;
+        page-break-inside: avoid;
+    }
+    
+    .phpcc-exec-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 8pt !important;
+    }
+    
+    .phpcc-exec-card {
+        padding: 8pt !important;
+        background: #f5f5f5 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .phpcc-exec-status {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    /* Cards stack full-width */
+    .phpcc-cards-grid {
+        display: block !important;
     }
     
     .phpcc-card {
         break-inside: avoid;
         page-break-inside: avoid;
-        border: 1px solid #c3c4c7;
-        margin-bottom: 15px;
+        border: 1px solid #ccc !important;
+        margin: 0 0 12pt 0 !important;
+        padding: 12pt !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        border-top-width: 4px !important;
     }
     
-    .phpcc-cards-grid {
-        display: block;
+    .phpcc-card-header h3 {
+        font-size: 14pt !important;
     }
     
-    .phpcc-executive {
-        border: 1px solid #c3c4c7;
+    .phpcc-card-score {
+        width: 40pt !important;
+        height: 40pt !important;
+        font-size: 18pt !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .phpcc-card-issues {
+        margin-bottom: 6pt !important;
+    }
+    
+    .phpcc-card-issue-critical,
+    .phpcc-card-issue-warning,
+    .phpcc-card-issue-clean {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .phpcc-risky-plugins {
+        page-break-inside: avoid;
+    }
+    
+    h1, h2, h3 {
+        page-break-after: avoid;
+    }
+    
+    .phpcc-stat-label {
+        font-size: 8pt !important;
     }
 }
 

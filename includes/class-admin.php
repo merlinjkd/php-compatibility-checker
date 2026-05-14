@@ -173,6 +173,7 @@ class PHPCC_Admin {
 
         echo '<button id="phpcc-export" class="button">' . esc_html__('Export CSV', 'phpcc') . '</button>';
         echo '<button id="phpcc-export-report" class="button">' . esc_html__('Print Report', 'phpcc') . '</button>';
+        echo '<button id="phpcc-export-markdown" class="button">' . esc_html__('Download Markdown', 'phpcc') . '</button>';
         echo '<button id="phpcc-clear-cache" class="button">' . esc_html__('Clear Results', 'phpcc') . '</button>';
 
         // Filters
@@ -334,5 +335,20 @@ class PHPCC_Admin {
         }
 
         wp_send_json_error(['message' => 'Component not found'], 404);
+    }
+
+    public function ajax_export_markdown(): void {
+        check_ajax_referer('phpcc_nonce', 'nonce');
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error(['message' => 'Permission denied'], 403);
+        }
+
+        $results = $this->scanner->get_cached_results();
+        if (empty($results)) {
+            wp_send_json_error(['message' => 'No scan results to export'], 404);
+        }
+
+        $markdown = $this->report->export_markdown($results);
+        wp_send_json_success(['markdown' => $markdown]);
     }
 }

@@ -55,6 +55,7 @@ class PHP_Compatibility_Checker {
         add_action('wp_ajax_phpcc_rescan', [$this->admin, 'ajax_rescan']);
         add_action('wp_ajax_phpcc_clear_cache', [$this->admin, 'ajax_clear_cache']);
         add_action('wp_ajax_phpcc_get_detail', [$this->admin, 'ajax_get_detail']);
+        add_action('wp_ajax_phpcc_export_markdown', [$this->admin, 'ajax_export_markdown']);
 
         // Register menus
         add_action('admin_menu', [$this, 'register_menus']);

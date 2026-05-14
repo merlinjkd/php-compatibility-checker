@@ -106,6 +106,38 @@
             window.print();
         });
 
+        // ---- Download Markdown ----
+        $('#phpcc-export-markdown').on('click', function(e) {
+            e.preventDefault();
+
+            if (!window.PHPCC_Results || !Array.isArray(window.PHPCC_Results) || window.PHPCC_Results.length === 0) {
+                alert(PHPCC_Vars.strings.noData);
+                return;
+            }
+
+            // Build a payload and let PHP generate the markdown via AJAX
+            $.post(PHPCC_Vars.ajaxUrl, {
+                action: 'phpcc_export_markdown',
+                nonce: PHPCC_Vars.nonce
+            }, function(response) {
+                if (response.success && response.data.markdown) {
+                    var blob = new Blob([response.data.markdown], { type: 'text/markdown;charset=utf-8' });
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'php8-readiness-' + new Date().toISOString().split('T')[0] + '.md';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } else {
+                    alert('Failed to generate markdown: ' + (response.data?.message || 'Unknown error'));
+                }
+            }).fail(function() {
+                alert('Failed to generate markdown report.');
+            });
+        });
+
         // ---- Filter Cards ----
         $('#phpcc-filter').on('change', function() {
             var filter = $(this).val();
