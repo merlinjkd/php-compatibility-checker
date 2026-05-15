@@ -189,7 +189,7 @@ class PHPCC_Impact_Analyzer {
             $results[] = [
                 'post_type' => $name,
                 'count'     => $total,
-                'label'     => get_post_type_object($name)?->label ?? $name,
+                'label'     => $this->get_cpt_label($name, $name),
             ];
         }
         return $results;
@@ -348,5 +348,13 @@ class PHPCC_Impact_Analyzer {
             default:
                 return 'Low impact. Safe to remove after a quick manual check. No active content appears to depend on this plugin.';
         }
+    }
+
+    /**
+     * PHP 7.4-safe alternative to get_post_type_object($name)?->label
+     */
+    private function get_cpt_label(string $name, string $fallback): string {
+        $obj = get_post_type_object($name);
+        return ($obj !== null && isset($obj->label)) ? $obj->label : $fallback;
     }
 }
