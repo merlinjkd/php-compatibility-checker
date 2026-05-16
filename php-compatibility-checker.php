@@ -3,7 +3,7 @@
  * Plugin Name: PHP Compatibility Checker
  * Plugin URI: https://github.com/merlinjkd/php-compatibility-checker
  * Description: Comprehensive PHP 8 readiness scanner with feature detection, impact analysis, and human-readable reports. Bundled PHPCS — zero dependencies.
- * Version: 2.0.4
+ * Version: 2.0.5
  * Author: WP Essential Support
  * Author URI: https://greatbeardesign.com
  * License: GPLv2 or later
@@ -24,7 +24,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define constants
-define('PHPCC_VERSION', '2.0.4');
+define('PHPCC_VERSION', '2.0.5');
 define('PHPCC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('PHPCC_PLUGIN_URL', plugin_dir_url(__FILE__));
 
